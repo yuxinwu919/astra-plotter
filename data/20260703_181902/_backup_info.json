@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-07-03T18:19:03.225681",
+  "notes": "ASTRA: astra, run 001",
+  "format": "png",
+  "dpi": 150,
+  "items": [
+    "figures/emittance_evolution.png",
+    "figures/beam_size_evolution.png",
+    "figures/energy_evolution.png",
+    "figures/phase_space_xy.png",
+    "figures/phase_space_xpx.png",
+    "figures/phase_space_zpz.png",
+    "figures/slice_analysis.png",
+    "figures/bunch_form_factor.png",
+    "data/emit_data.npz",
+    "data/phasespace.npz",
+    "data/statistics.npz",
+    "data/slice_matrix.npz",
+    "data/statistics.json"
+  ]
+}

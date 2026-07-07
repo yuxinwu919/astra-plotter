@@ -1,0 +1,439 @@
+\documentclass[11pt,a4paper]{article}
+
+% ============================================================================
+% ASTRA Plotter - User Manual
+% ============================================================================
+
+\usepackage[UTF8]{ctex}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{fancyhdr}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    urlcolor=blue,
+    citecolor=blue,
+}
+
+\definecolor{codebg}{rgb}{0.95,0.95,0.95}
+\definecolor{codeframe}{rgb}{0.8,0.8,0.8}
+
+\lstset{
+    backgroundcolor=\color{codebg},
+    frame=single,
+    rulecolor=\color{codeframe},
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    numbers=left,
+    numberstyle=\tiny,
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!40!black},
+    stringstyle=\color{red},
+    showstringspaces=false,
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{ASTRA Plotter 使用手册}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\title{\textbf{ASTRA Plotter 使用手册}\\[0.5em]
+       \large 基于 Python 的 ASTRA 模拟数据后处理与可视化工具}
+\author{ASTRA Plotter Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+% ============================================================================
+\section{简介}
+% ============================================================================
+
+ASTRA Plotter 是对传统 BDplotter 代码的全面重构，提供模块化、可扩展的 ASTRA
+（\textit{A Space charge TRacking Algorithm}）模拟数据后处理框架。
+
+\subsection{功能特性}
+\begin{itemize}
+    \item \textbf{数据加载}：支持 ASTRA 输出的 Emit (.Xemit/.Yemit/.Zemit)、
+          Sigma (.Sigma)、Cemit (.Cemit) 及相空间粒子文件
+    \item \textbf{束流分析}：发射度计算、束斑统计、能散分析、电流分布、
+          纵向切片分析、群聚因子
+    \item \textbf{可视化}：出版级质量的发射度演化图、束斑尺寸图、能量曲线、
+          相空间密度图（含投影）、切片参数综合图
+    \item \textbf{交互式 GUI}：基于 ipywidgets 的交互式后处理界面
+    \item \textbf{数据管理}：一键备份与时间戳归档
+    \item \textbf{环境检测}：自动验证 Python 版本及依赖包兼容性
+\end{itemize}
+
+\subsection{与 BDplotter 的关系}
+本项目继承了 BDplotter 的核心算法（发射度计算、本征发射度分析、相空间加载等），
+并对代码进行了以下改进：
+\begin{itemize}
+    \item 模块化拆分（loader / analyzer / plotter / cosmetics）
+    \item 规范化命名和文档字符串
+    \item 全局配置集中管理（物理常数、文件格式 dtype）
+    \item 增加 Jupyter Notebook 交互式界面
+    \item 增加环境检测和备份工具
+\end{itemize}
+
+% ============================================================================
+\section{安装与配置}
+% ============================================================================
+
+\subsection{系统要求}
+\begin{itemize}
+    \item 操作系统：macOS / Linux / Windows
+    \item Python $\geq$ 3.7
+    \item 可选：LaTeX 发行版（用于图表 TeX 渲染，如 MacTeX 或 TeX Live）
+\end{itemize}
+
+\subsection{安装步骤}
+
+\subsubsection{方式 A：pip 安装}
+\begin{lstlisting}[language=bash]
+cd astra_plotter
+pip install -r requirements.txt
+\end{lstlisting}
+
+\subsubsection{方式 B：Conda 环境}
+\begin{lstlisting}[language=bash]
+conda env create -f environment.yml
+conda activate astra_plotter
+\end{lstlisting}
+
+\subsection{环境检测}
+运行环境检测模块确认所有依赖就绪：
+\begin{lstlisting}[language=bash]
+python -m astra_plotter.utils.env_check
+\end{lstlisting}
+
+\begin{lstlisting}[language=python]
+from astra_plotter.utils.env_check import check_environment
+result = check_environment()
+\end{lstlisting}
+
+% ============================================================================
+\section{项目结构}
+% ============================================================================
+
+\begin{lstlisting}[language=bash]
+astra_plotter/
+├── astra_plotter/          # 核心包
+│   ├── __init__.py
+│   ├── config.py           # 全局配置
+│   ├── core/
+│   │   ├── loader.py       # 数据加载
+│   │   ├── analyzer.py     # 束流分析
+│   │   ├── plotter.py      # 绘图
+│   │   └── cosmetics.py    # 颜色映射与样式
+│   └── utils/
+│       ├── env_check.py    # 环境检测
+│       └── helpers.py      # 工具函数
+├── gui/                    # GUI 子项目
+├── notebooks/              # Jupyter 笔记本
+├── scripts/                # CLI 工具
+├── data/                   # 备份存储
+├── examples/               # 示例
+├── tests/                  # 测试
+└── docs/                   # 文档
+\end{lstlisting}
+
+% ============================================================================
+\section{ASTRA 文件格式}
+% ============================================================================
+
+\subsection{Emit 文件 (.Xemit / .Yemit / .Zemit)}
+
+记录了 RMS 束流参数沿纵向位置 $z$ 的演化。
+
+\begin{table}[h]
+\centering
+\caption{Emit 文件列定义}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{列} & \textbf{名称} & \textbf{单位} \\
+\midrule
+1 & z      & m \\
+2 & t      & ns \\
+3 & $\langle x \rangle$ / $\langle p \rangle$ & m / eV/c \\
+4 & $\sigma_x$ / $\sigma_t$ & m / ns \\
+5 & $\sigma_{x'}$ / $\sigma_p$ & rad / eV/c \\
+6 & $\gamma\epsilon_x$ / $\epsilon_z$ & m·rad / eV·s \\
+7 & corr   & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Sigma 文件 (.Sigma)}
+
+包含完整的 $6 \times 6$ 束团协方差矩阵（上三角元素），共 21 列：
+\begin{equation}
+\Sigma = \begin{pmatrix}
+\langle x^2 \rangle & \langle x x' \rangle & \langle x y \rangle &
+\langle x y' \rangle & \langle x z \rangle & \langle x z' \rangle \\
+& \langle x'^2 \rangle & \langle x' y \rangle & \langle x' y' \rangle &
+\langle x' z \rangle & \langle x' z' \rangle \\
+& & \langle y^2 \rangle & \langle y y' \rangle & \langle y z \rangle &
+\langle y z' \rangle \\
+& & & \langle y'^2 \rangle & \langle y' z \rangle &
+\langle y' z' \rangle \\
+& & & & \langle z^2 \rangle & \langle z z' \rangle \\
+& & & & & \langle z'^2 \rangle
+\end{pmatrix}
+\end{equation}
+
+\subsection{相空间文件}
+
+每行代表一个宏粒子，共 10 列：
+$x$, $y$, $z$, $P_x$, $P_y$, $P_z$, clock, charge, index, status\_flag。
+
+其中动量单位为 eV/c，坐标单位为 m。$z$ 和 $P_z$ 为累积值，
+加载时自动转换为绝对值。仅保留 status\_flag $> 0$ 的存活粒子。
+
+% ============================================================================
+\section{API 参考}
+% ============================================================================
+
+\subsection{数据加载模块 (loader)}
+
+\subsubsection{LoadAstraEmit(rootname, run)}
+加载 Xemit、Yemit、Zemit（及可选的 Cemit）文件。
+
+\textbf{参数：}
+\begin{itemize}
+    \item \texttt{rootname} (str): ASTRA 根文件名，如 \texttt{'astra'}
+    \item \texttt{run} (str): 运行编号，如 \texttt{'001'}
+\end{itemize}
+
+\textbf{返回：} \texttt{(X, Y, Z, C)} 四个 NumPy 结构化数组。
+
+\subsubsection{LoadAstraSigma(rootname, run)}
+加载 Sigma 文件并计算本征发射度。
+
+\textbf{返回：} \texttt{(S, enx, eny, enz)}，其中 enx/eny 为横向本征发射度，
+enz 为纵向发射度。
+
+\subsubsection{LoadAstraPhaseSpace(filename)}
+加载相空间粒子文件，自动筛选存活粒子并转换坐标。
+
+\textbf{返回：} 结构化数组，包含各粒子的相空间坐标和动量。
+
+\subsection{束流分析模块 (analyzer)}
+
+\subsubsection{Analysis(phsp)}
+计算束团全局统计量。
+
+\textbf{返回：} 字典，包含粒子数、平均 $\gamma$/$\beta$、
+RMS 束斑尺寸、归一化发射度、相对能散等。
+
+\subsubsection{UniformSliceAnalysis(phsp, numbins, bunch\_charge)}
+等间隔纵向切片分析。
+
+\textbf{参数：}
+\begin{itemize}
+    \item \texttt{phsp}: 相空间数组
+    \item \texttt{numbins}: 切片数量
+    \item \texttt{bunch\_charge}: 束团总电荷 (C)
+\end{itemize}
+
+\textbf{返回：} \texttt{(numbins, 14)} 矩阵，每行包含切片中心位置、
+电流、发射度、亮度等参数。
+
+\subsubsection{current(z, charge, Nbins)}
+计算纵向电流分布 $I(z)$。
+
+\subsubsection{BunchFormFactor(z, kmin, kmax, nk, IsLog)}
+计算群聚因子 $|F(k)|^2$。
+
+\subsection{绘图模块 (plotter)}
+
+所有绘图函数接受 ASTRA 结构化数组，返回 \texttt{matplotlib.figure.Figure}。
+
+\begin{table}[h]
+\centering
+\caption{绘图函数一览}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{函数} & \textbf{说明} \\
+\midrule
+\texttt{PlotEmit1plt(X, Y, Z)} & 三方向发射度演化（双 y 轴）\\
+\texttt{PlotSize1plt(X, Y, Z)} & 束斑尺寸演化\\
+\texttt{PlotEnergy1plt(X, Y, Z)} & 能量与能散演化\\
+\texttt{PlotEigenEmits(S, enx, eny, enz)} & 本征发射度\\
+\texttt{DensityPlot(X, Y, Nbins)} & 2D 密度图（对数色标）\\
+\texttt{DensityplotwProjec2x2(X, Y, Nbins)} & 密度图 + 双投影\\
+\texttt{DensityPlot\_w\_proj(X, Y, Nbins)} & 密度图 + 投影叠加\\
+\texttt{PlotSliceParameters(sm)} & 切片分析综合图\\
+\texttt{PlotBunchFormFactor(k, bff)} & 群聚因子图\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ============================================================================
+\section{使用示例}
+% ============================================================================
+
+\subsection{命令行快速绘图}
+\begin{lstlisting}[language=bash]
+# 切换到数据目录
+cd simulation_output
+
+# 绘制标准三图
+python ../scripts/lineplot.py astra 001
+
+# 仅绘制发射度，保存为 PDF
+python ../scripts/lineplot.py astra 001 --type emit --save emit.pdf
+\end{lstlisting}
+
+\subsection{Jupyter Notebook 完整分析}
+\begin{lstlisting}[language=python]
+# 在 notebooks/astra_plotter.ipynb 中运行
+from astra_plotter import *
+from astra_plotter.core.cosmetics import set_publication_style
+
+set_publication_style(font_size=14)
+
+# 加载数据
+X, Y, Z, C = LoadAstraEmit('astra', '001')
+PhSp = LoadAstraPhaseSpace('astra.0500.001')
+
+# 统计分析
+result = Analysis(PhSp)
+print(f"ε_nx = {result['nemit_x']*1e6:.2f} µm")
+
+# 切片分析
+slices = UniformSliceAnalysis(PhSp, 30, 1.0e-9)
+
+# 绘制全套图表
+PlotEmit1plt(X, Y, Z)
+PlotSize1plt(X, Y, Z)
+PlotEnergy1plt(X, Y, Z)
+DensityplotwProjec2x2(PhSp['x']*1e3,
+                      PhSp['px']/PhSp['pz'].mean(), 50)
+plt.show()
+\end{lstlisting}
+
+\subsection{交互式 GUI}
+\begin{lstlisting}[language=python]
+from gui import PostProGUI, build_jupyter_gui
+
+gui = PostProGUI(data_dir='simulation_output')
+gui.load_data()
+gui.show_statistics()
+
+# 在 Jupyter 中显示交互式界面
+widget = build_jupyter_gui(gui)
+display(widget)
+\end{lstlisting}
+
+% ============================================================================
+\section{物理常数与约定}
+% ============================================================================
+
+\begin{table}[h]
+\centering
+\caption{使用的物理常数}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{符号} & \textbf{数值} & \textbf{说明} \\
+\midrule
+$c$    & $2.99792458 \times 10^8$ m/s & 真空光速 \\
+$m_e c^2$ & $0.5109989461 \times 10^6$ eV & 电子静止能量 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{发射度约定：}
+归一化发射度定义为
+$\varepsilon_{n} = \beta\gamma \sqrt{\langle x^2\rangle\langle x'^2\rangle -
+\langle xx'\rangle^2}$，
+其中 $x' = P_x / P_z$ 为几何发散角。
+
+\textbf{单位约定：}
+\begin{itemize}
+    \item 位置/束斑：输出时通常以 mm 表示
+    \item 发射度：输出时通常以 µm 表示
+    \item 动量：eV/c
+    \item 时间：ns
+\end{itemize}
+
+% ============================================================================
+\section{备份与数据管理}
+% ============================================================================
+
+备份脚本将 \texttt{simulation\_output/} 中的所有文件
+复制到 \texttt{data/YYYYMMDD\_HHMMSS/} 目录。
+
+\begin{lstlisting}[language=bash]
+# 备份默认目录
+python scripts/backup.py
+
+# 备份指定目录
+python scripts/backup.py /path/to/simulation
+
+# 列出已有备份
+python scripts/backup.py --list
+\end{lstlisting}
+
+备份目录中自动生成 \texttt{\_backup\_info.txt} 记录备份元信息。
+
+% ============================================================================
+\section{常见问题}
+% ============================================================================
+
+\subsection{LaTeX 渲染失败}
+如果系统未安装 LaTeX，matplotlib 的 TeX 渲染将失败。
+解决方法：
+\begin{enumerate}
+    \item macOS：安装 MacTeX (\texttt{brew install --cask mactex})
+    \item Linux：安装 TeX Live (\texttt{sudo apt install texlive})
+    \item 或者设置 \texttt{use\_tex=False} 禁用 TeX 渲染
+\end{enumerate}
+
+\subsection{找不到相空间文件}
+确认 \texttt{simulation\_output/} 目录中存在格式为
+\texttt{rootname.NNNN.NNN} 的文件。
+可使用 \texttt{discover\_astra\_files()} 函数自动检测。
+
+\subsection{切片分析结果异常}
+切片分析需要足够的粒子统计量。建议每个切片至少包含 10 个粒子。
+可以使用 \texttt{UniformSliceAnalysis} 的 \texttt{numbins} 参数调节切片数量。
+
+% ============================================================================
+\section{开发指南}
+% ============================================================================
+
+\subsection{添加新数据格式}
+\begin{enumerate}
+    \item 在 \texttt{astra\_plotter/config.py} 中定义 dtype
+    \item 在 \texttt{astra\_plotter/core/loader.py} 中添加加载函数
+    \item 在 \texttt{astra\_plotter/\_\_init\_\_.py} 中导出
+\end{enumerate}
+
+\subsection{添加新绘图类型}
+\begin{enumerate}
+    \item 在 \texttt{astra\_plotter/core/plotter.py} 中添加函数
+    \item 函数应返回 \texttt{matplotlib.figure.Figure}
+    \item 在 \texttt{gui/\_\_init\_\_.py} 的 \texttt{PostProGUI.plot()} 中注册
+\end{enumerate}
+
+% ============================================================================
+
+\appendix
+\section{SLAC-DESY 颜色映射}
+
+本项目使用 SLAC-DESY 标准束流颜色映射（由 C. Behrens, DESY 和
+T. Maxwell, SLAC 开发）。该颜色映射专为束流动力学可视化优化，
+在低密度区域呈现深色、高密度区域呈现暖色，具有良好的感知均匀性。
+
+\end{document}

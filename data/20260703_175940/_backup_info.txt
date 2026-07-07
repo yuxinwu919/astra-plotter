@@ -1,0 +1,4 @@
+Backup: 2026-07-03T17:59:40.568445
+Source: /Users/yuxinwu/plotter/astra_plotter/simulation_output
+Files: 10
+Size: 4,061,743 bytes

@@ -1,0 +1,29 @@
+&NEWRUN
+  Head='Example of ASTRA simulation',
+  RUN=1,
+  Distribution='bunch.ini',
+  Xoff=0,
+  Yoff=0,
+  Track_All=T,
+  Auto_Phase=T,
+  H_max=0.001,
+ /
+
+&OUTPUT
+  ZSTART=0,
+  ZSTOP=5,
+  Zemit=500,
+  Zphase=1,
+  RefS=T,
+  EmitS=T,
+  PhaseS=T,
+ /
+
+&CHARGE
+  LSPCH=F,
+  Nrad=10,
+  Cell_var=2,
+  Nlong_in=10,
+  min_grid=0,
+  Max_Scale=0.05,
+ /

@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+.env
+.venv/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# VS Code settings (personal)
+.vscode/
+
+# Large PDF manuals
+*.pdf
+
+# Generated output files
+output_figures/
+data/*/figures/
+
+# Large data files
+*.npz
+*.001
+*.002
+*.003
+*.004
+*.005
+*.dat
+
+# Data backup files (keep only metadata)
+data/*/data/*.npz
+data/*/data/*.npy
+
+# Simulation output raw data
+simulation_output/*.001
+simulation_output/*.002
+simulation_output/*.003
+simulation_output/*.004
+simulation_output/*.005
+simulation_output/*.Log.*
+simulation_output/*.ref.*
+simulation_output/*.Xemit.*
+simulation_output/*.Yemit.*
+simulation_output/*.Zemit.*
+simulation_output/*.Sigma.*
+simulation_output/*.ast.*
+
+# LaTeX build artifacts
+docs/manual/*.aux
+docs/manual/*.fdb_latexmk
+docs/manual/*.fls
+docs/manual/*.toc
+docs/manual/*.xdv
+docs/manual/*.log
+docs/manual/*.out
+docs/manual/*.pdf
